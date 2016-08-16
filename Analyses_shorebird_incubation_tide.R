@@ -1,5 +1,5 @@
 	# define working directory
-	wd="C:/Users/mbulla/Documents/Dropbox/Science/Projects/MS/Comparative/Tidal_rhythms//Data/"
+	wd="C:/Users/mbulla/Documents/Dropbox/Science/Projects/MS/Living_with_the_tides/Living_with_the_tides_shorebirds_analyses/"
 	
 	# load data - used in Bulla et al. 2016 and available here https://osf.io/eydx5/ 
 	load(paste(wd,"comparative_all.Rdata", sep=""))
