@@ -15,6 +15,7 @@
 #							- raw_plots
 #							- models_per_individual
 #							- ACF
+#							- simulations
 # To save time, analyses can be used without data preparation by using file from folder data.RData from https://osf.io/xby9t/
 
 {############################# load tools #################################
@@ -325,7 +326,102 @@ if(skip2 == FALSE){
 			px=px[order(px$tag, px$nTideTime),]
 			ggplot(px, aes(x = nTideTime, y = pred, col = as.factor(tag)))+geom_point()		
 }	
-{# Figure 2 - standardized sclae
+{# Figure 2	- km scale
+	{# run first
+				load(file = 'data.Rdata')
+				load(file = 'simulations/model_outputs.Rdata')
+				pd = read.table('simulations/fits_day_100s.txt', header = TRUE, stringsAsFactors = FALSE )
+				pe = read.table('simulations/fits_tide_100s.txt', header = TRUE, stringsAsFactors = FALSE )
+	}	
+	{# tide - plot on log or standardized scale
+				if(PNG == TRUE) {
+					png(paste(outdir,"Figure_1A_orig_100.png", sep=""), width=1.85+0.3,height=1.5,units="in",res=600) 
+					}else{
+					dev.new(width=1.85+0.3,height=1.5)
+					}	
+				par(mar=c(0.8,0.2,0.2,2.5),oma = c(1, 2, 0, 0),ps=12, mgp=c(1.2,0.35,0), las=1, cex=1, col.axis="black",font.main = 1, col.lab="black", col.main="black", fg="grey40", cex.lab=0.6,cex.main=0.7, cex.axis=0.5, tcl=-0.1,bty="n",xpd=TRUE) #
+			
+						
+				plot(pred ~ nTideTime , data = pe, 
+										#ylab =NULL, 
+										xaxt='n',
+										#yaxt='n',
+										#xaxs = 'i',
+										#yaxs = 'i',
+										ylim=c(0,2.5),
+										#xlim=c(0,12.4),
+										xlim=c(-6.2,6.2),
+										type='n'
+										) # col=z_g$cols, border=z_g$cols
+										
+				axis(1, at=c(-6.2,-3.1,0,3.1,6.2), label=c(-6.2,3.1,0,3.1,6.2), mgp=c(0,-0.20,0))
+				#axis(1, at=c(0,6.2,12,18,24), label=c(0,'',12,'',24), mgp=c(0,-0.20,0))
+				#axis(2, at=seq(-3,0.5, by=0.5), label=T)
+				
+				mtext("Time from high tide [h]",side=1,line=0.3, cex=0.6, las=1, col='grey30')
+				mtext("Distance from the roost\n[km]",side=2,line=1, cex=0.6, las=3, col='grey30')
+				
+				text(x=6.2, y=2.5 ,"A", font = 2, cex =0.6 )
+				
+				for(i in 1:length(unique(pe$tag))){ # check tag 4, 7, 8, 11, 16
+							pdi = pe[pe$tag==unique(pe$tag)[i],]
+							pdi=pdi[order(pdi$nTideTime),]
+							mdi = md$maxd[md$tag==unique(md$tag)[i]]/1000
+							lines(pdi$nTideTime,pdi$pred*mdi)
+						}
+				
+				
+				
+				 if(PNG == TRUE) {dev.off()}
+			}
+	{# 24h - plot on log or standardized scale
+				if(PNG == TRUE) {
+					png(paste(outdir,"Figure_1B_ori_100.png", sep=""), width=1.85+0.3,height=1.5,units="in",res=600) 
+					}else{
+					dev.new(width=1.85+0.3,height=1.5)
+					}	
+				par(mar=c(0.8,0.2,0.2,2.5),oma = c(1, 2, 0, 0),ps=12, mgp=c(1.2,0.35,0), las=1, cex=1, col.axis="black",font.main = 1, col.lab="black", col.main="black", fg="grey40", cex.lab=0.6,cex.main=0.7, cex.axis=0.5, tcl=-0.1,bty="n",xpd=TRUE) #
+			
+						
+				plot(pred ~ rhour , data = pd, 
+										#ylab =NULL, 
+										xaxt='n',
+										yaxt='n',
+										#xaxs = 'i',
+										#yaxs = 'i',
+										ylim=c(0,2.5),
+										#xlim=c(0,12.4),
+										xlim=c(0,24),
+										type='n'
+										) # col=z_g$cols, border=z_g$cols
+										
+				#axis(1, at=c(0,6.2,12.4), label=c(0,6.2,12.4), mgp=c(0,-0.20,0))
+				axis(1, at=c(0,6,12,18,24), label=c(0,'',12,'',24), mgp=c(0,-0.20,0))
+				#axis(2, at=c(0,1,2,3), label=c(0,1,2,3))
+				
+				mtext("Time of day [h]",side=1,line=0.3, cex=0.6, las=1, col='grey30')
+				#mtext("Distance from the roost\n[standardized]",side=2,line=1, cex=0.6, las=3, col='grey30')
+				
+				text(x=24, y=2.5, "B", font = 2, cex =0.6 )
+				text(x=12, y=2.5*1.1/1.2, "Farthest at",  cex =0.5 )
+				text(x=10, y=2.5*1/1.2, "night", col = col_m, cex =0.5 )
+				text(x=15, y=2.5*1/1.2, "day", col = col_f, cex =0.5 )
+				
+				for(i in 1:length(unique(pd$tag))){
+							pdi = pd[pd$tag==unique(pd$tag)[i],]
+							pdi=pdi[order(pdi$rhour),]
+							if(pdi$rhour[pdi$pred == min(pdi$pred)]>19.5 | pdi$rhour[pdi$pred == min(pdi$pred)]<7){col_=col_f}else{col_=col_m}
+							mdi = md$maxd[md$tag==unique(md$tag)[i]]/1000
+							lines(pdi$rhour,pdi$pred*mdi, col = col_)
+						}
+						
+				
+				
+				 if(PNG == TRUE) {dev.off()}
+			}
+}					
+
+{# not in paper - Figure 2 - standardized sclae
 	{# run first
 				load(file = 'simulations/model_outputs.Rdata')
 				
@@ -416,100 +512,6 @@ if(skip2 == FALSE){
 				 if(PNG == TRUE) {dev.off()}
 			}
 }										
-{# Figure 2	- km scale
-	{# run first
-				load(file = 'data.Rdata')
-				load(file = 'simulations/model_outputs.Rdata')
-				pd = read.table('simulations/fits_day_100s.txt', header = TRUE, stringsAsFactors = FALSE )
-				pe = read.table('simulations/fits_tide_100s.txt', header = TRUE, stringsAsFactors = FALSE )
-	}	
-	{# tide - plot on log or standardized scale
-				if(PNG == TRUE) {
-					png(paste(outdir,"Figure_1A_orig_100.png", sep=""), width=1.85+0.3,height=1.5,units="in",res=600) 
-					}else{
-					dev.new(width=1.85+0.3,height=1.5)
-					}	
-				par(mar=c(0.8,0.2,0.2,2.5),oma = c(1, 2, 0, 0),ps=12, mgp=c(1.2,0.35,0), las=1, cex=1, col.axis="grey30",font.main = 1, col.lab="grey30", col.main="grey30", fg="grey40", cex.lab=0.6,cex.main=0.7, cex.axis=0.5, tcl=-0.1,bty="n",xpd=TRUE) #
-			
-						
-				plot(pred ~ nTideTime , data = pe, 
-										#ylab =NULL, 
-										xaxt='n',
-										#yaxt='n',
-										#xaxs = 'i',
-										#yaxs = 'i',
-										ylim=c(0,2.5),
-										#xlim=c(0,12.4),
-										xlim=c(-6.2,6.2),
-										type='n'
-										) # col=z_g$cols, border=z_g$cols
-										
-				axis(1, at=c(-6.2,-3.1,0,3.1,6.2), label=c(-6.2,3.1,0,3.1,6.2), mgp=c(0,-0.20,0))
-				#axis(1, at=c(0,6.2,12,18,24), label=c(0,'',12,'',24), mgp=c(0,-0.20,0))
-				#axis(2, at=seq(-3,0.5, by=0.5), label=T)
-				
-				mtext("Time from high tide [h]",side=1,line=0.3, cex=0.6, las=1, col='grey30')
-				mtext("Distance from the roost\n[km]",side=2,line=1, cex=0.6, las=3, col='grey30')
-				
-				text(x=6.2, y=2.5 ,"A", font = 2, cex =0.6 )
-				
-				for(i in 1:length(unique(pe$tag))){ # check tag 4, 7, 8, 11, 16
-							pdi = pe[pe$tag==unique(pe$tag)[i],]
-							pdi=pdi[order(pdi$nTideTime),]
-							mdi = md$maxd[md$tag==unique(md$tag)[i]]/1000
-							lines(pdi$nTideTime,pdi$pred*mdi)
-						}
-				
-				
-				
-				 if(PNG == TRUE) {dev.off()}
-			}
-	{# 24h - plot on log or standardized scale
-				if(PNG == TRUE) {
-					png(paste(outdir,"Figure_1B_ori_100.png", sep=""), width=1.85+0.3,height=1.5,units="in",res=600) 
-					}else{
-					dev.new(width=1.85+0.3,height=1.5)
-					}	
-				par(mar=c(0.8,0.2,0.2,2.5),oma = c(1, 2, 0, 0),ps=12, mgp=c(1.2,0.35,0), las=1, cex=1, col.axis="grey30",font.main = 1, col.lab="grey30", col.main="grey30", fg="grey40", cex.lab=0.6,cex.main=0.7, cex.axis=0.5, tcl=-0.1,bty="n",xpd=TRUE) #
-			
-						
-				plot(pred ~ rhour , data = pd, 
-										#ylab =NULL, 
-										xaxt='n',
-										yaxt='n',
-										#xaxs = 'i',
-										#yaxs = 'i',
-										ylim=c(0,2.5),
-										#xlim=c(0,12.4),
-										xlim=c(0,24),
-										type='n'
-										) # col=z_g$cols, border=z_g$cols
-										
-				#axis(1, at=c(0,6.2,12.4), label=c(0,6.2,12.4), mgp=c(0,-0.20,0))
-				axis(1, at=c(0,6,12,18,24), label=c(0,'',12,'',24), mgp=c(0,-0.20,0))
-				#axis(2, at=c(0,1,2,3), label=c(0,1,2,3))
-				
-				mtext("Time of day [h]",side=1,line=0.3, cex=0.6, las=1, col='grey30')
-				#mtext("Distance from the roost\n[standardized]",side=2,line=1, cex=0.6, las=3, col='grey30')
-				
-				text(x=24, y=2.5, "B", font = 2, cex =0.6 )
-				text(x=12, y=2.5*1.1/1.2, "Farthest at",  cex =0.5 )
-				text(x=10, y=2.5*1/1.2, "night", col = col_m, cex =0.5 )
-				text(x=15, y=2.5*1/1.2, "day", col = col_f, cex =0.5 )
-				
-				for(i in 1:length(unique(pd$tag))){
-							pdi = pd[pd$tag==unique(pd$tag)[i],]
-							pdi=pdi[order(pdi$rhour),]
-							if(pdi$rhour[pdi$pred == min(pdi$pred)]>19.5 | pdi$rhour[pdi$pred == min(pdi$pred)]<7){col_=col_f}else{col_=col_m}
-							mdi = md$maxd[md$tag==unique(md$tag)[i]]/1000
-							lines(pdi$rhour,pdi$pred*mdi, col = col_)
-						}
-						
-				
-				
-				 if(PNG == TRUE) {dev.off()}
-			}
-}					
 
 }
 
