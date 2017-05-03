@@ -7,16 +7,33 @@
 # --------------------------------------------------------------------------------------------------------
 # The script runs with 	- R version 3.3.0 (2014-07-10); for packages version see the sessionInfo() at the end of the script
 #                      	- following files available from https://osf.io/xby9t/
-#						- low tides.txt
-#						- high tides.txt
-#						- median positions.txt
-#                       - subShab.tif
+	#						- low tides.txt
+	#						- high tides.txt
+	#						- median positions.txt
+	#                       - subShab.tif
+#						- following folders in your directory (defined as outdir)
+#							- raw_plots
+#							- models_per_individual
+#							- ACF
+# To save time, analyses can be used without data preparation by using file from folder data.RData from https://osf.io/xby9t/
 
-##################################### load tools ###########################################
+{############################# load tools #################################
+### for plotting
+rm(list=ls())
+palette("default")
+PNG = TRUE # output is png file if FALSE prints plot within opened device in R
 
 ### set working directory
-setwd("C:/Users/mbulla/Documents/Dropbox/Science/Projects/MS/Living_with_the_tides/For Martin")
-outdir = "C:/Users/mbulla/Documents/Dropbox/Science/Projects/MS/Living_with_the_tides/For Martin/"
+wd = "C:/Users/mbulla/Documents/Dropbox/Science/Projects/MS/Living_with_the_tides/Living_with_the_tides_shorebirds_analyses/"
+outdir = "C:/Users/mbulla/Documents/Dropbox/Science/Projects/MS/Living_with_the_tides/Output/"
+setwd("C:/Users/mbulla/Documents/Dropbox/Science/Projects/MS/Living_with_the_tides/Living_with_the_tides_shorebirds_analyses/")
+
+
+### skip data generation (TURE or FALSE)
+skip = TRUE
+
+### skip simulations (TRUE or FALSE)
+skip3 = TRUE
 
 ### packages
 library(raster)
@@ -30,11 +47,6 @@ library(multcomp)
 library(plyr)
 library(lattice)
 library(ggplot2)
-
-### for plotting
-rm(list=ls())
-palette("default")
-PNG = TRUE # output is png file if FALSE prints plot within opened device in R
 
 ### define colors for plotting
 mypalette<-brewer.pal(7,"Blues")
@@ -77,9 +89,11 @@ y <- c(36,1) #the day number for each tide
  
  
  }
-	
 
-##################################### get data ###########################################
+ }
+
+ if(skip == FALSE{	
+{############################# get data ###################################
 
 ### high and low tide time
 low <- read.table("low tides.txt",header=T,sep="\t")
@@ -97,10 +111,9 @@ map <- raster("sup5hab.tif")
 ### get bird locations
 tabo <- read.table("median positions.txt",header=T,sep="\t")
 tabo$Timestamp.loc <- as.POSIXct(strptime(tabo$Timestamp.loc, format =  "%d-%m-%Y %H:%M"))
-
-
-############################# PREPARE DATA ###############################
-### CALCULATE DISTANCE TO CLOSEST ROOST and PLOT
+}
+{############################# PREPARE DATA ###############################
+### distance to closest roost and plot for each bird
 tags <- unique(tabo$Tag)
 l = list() # empty list to save the 95% largest distance for each bird
 for (t in tags){
@@ -127,7 +140,7 @@ for (t in tags){
   tab1$lRDist <- log10(tab1$Dist)/log10(maxd)      # log-transformed distance divided by log-transformed 95% largest distance
   
   #### make plot
-  png(paste("Plots/Plots per bird/tag_",t,".png", sep=""), width=10.5, height=8, units="cm", pointsize = 8, res = 1000)
+  png(paste(outdir,"raw_plots/tag_",t,".png", sep=""), width=10.5, height=8, units="cm", pointsize = 8, res = 1000)
   par(mar=c(4,4,4,9))
   quilt.plot(y=tab1$day,x=tab1$rhour,z=tab1$RDist2,
              nlevel=6,
@@ -169,7 +182,7 @@ for (t in tags){
   l[[t]] = data.frame(tag = tabo$Tag[tabo$Tag==t][1], maxd = maxd, stringsAsFactors = FALSE) 
 }
 md = do.call(rbind, l)
-save(md, tabx, file = 'data.Rdata')
+
 ### define explanatory variables 
 # time from high tide
 tabx$htide    <- NA
@@ -192,9 +205,15 @@ d$rad_t=2*pi*d$nTideTime / 12.4
 ### keep only standardized distances smaller than 2
 	d = d[d$RDist<2,]
 
-########################## ANALYSES #####################################
+### save to have it for later	
+save(md, d, file = 'data.Rdata')	
+}
+}
 
-{# generated model output and model predicttions for each bird				
+{############################# ANALYSES ###################################
+if(skip2 == FALSE){
+{# RUN FIRST - generated model output and model predicttions for each bird			
+	load(file = 'data.Rdata')		
 	l = list()
 	d$rad_t=2*pi*d$nTideTime / 12.4
 	for(i in 1:length(unique(d$Tag))){
@@ -204,27 +223,31 @@ d$rad_t=2*pi*d$nTideTime / 12.4
 					
 				{# run the model and print rough model output and temporal auto-correlations
 						di$t_=1:nrow(di)
-						foo=ssample(di$t_, round(nrow(di)*0.15),2)	
-						di_=di[di$t_%in%foo,]		
-						
-						m <- lm(RDist ~ sin(rad_dn) + cos(rad_dn) + sin(rad_t)+cos(rad_t), data=di_)
-						x = summary(glht(m))
-						nsim <- 10000
-						bsim <- sim(m, n.sim=nsim)
-						v = apply(bsim@coef, 2, quantile, prob=c(0.5))
-						lwr = apply(bsim@coef, 2, quantile, prob=c(0.025))
-						upr = apply(bsim@coef, 2, quantile, prob=c(0.975))
+						for(k in 1:100){
+							lp = list()
+							foo=ssample(di$t_, round(nrow(di)*0.15),2)	
+							di_=di[di$t_%in%foo,]		
+							m <- lm(RDist ~ sin(rad_dn) + cos(rad_dn) + sin(rad_t)+cos(rad_t), data=di_)
+							#x = summary(glht(m))
+							nsim <- 10000
+							bsim <- sim(m, n.sim=nsim)
+							lp[[k]]=data.frame(bsim@coef)
+						}
+						xx = do.call(rbind, lp)
+						v = apply(xx, 2, quantile, prob=c(0.5))
+						lwr = apply(xx, 2, quantile, prob=c(0.025))
+						upr = apply(xx, 2, quantile, prob=c(0.975))
 										
-						l[[i]] = data.frame(tag = i, n = nrow(di), est = v[2:5],lwr = lwr[2:5],upr = upr[2:5], period = c(24,24,12.4,12.4), vari = c('sin','cos', 'sin','cos'), p = x$test$pvalues[2:5])
+						l[[i]] = data.frame(tag = i, n = nrow(di), est = v[2:5],lwr = lwr[2:5],upr = upr[2:5], period = c(24,24,12.4,12.4), vari = c('sin','cos', 'sin','cos'))
 						
-						png(paste(outdir,"models_per_individual/Thight_no_log", di_$Tag[1], "sampled.png", sep=""), width=8,height=8,units="in",res=600) 
-						plot(allEffects(m))
-						dev.off()
+						#png(paste(outdir,"models_per_individual/Thight_no_log", di_$Tag[1], "sampled.png", sep=""), width=8,height=8,units="in",res=600) 
+						#plot(allEffects(m))
+						#dev.off()
 						
-						png(paste(outdir,"ACF/Thight_no_log", di_$Tag[1], "sampled.png", sep=""), width=8,height=8,units="in",res=600) 
-						acf(resid(m), type="p", main=list("Temporal autocorrelation:\npartial series residual",cex=0.8))
+						#png(paste(outdir,"ACF/Thight_no_log", di_$Tag[1], "sampled.png", sep=""), width=8,height=8,units="in",res=600) 
+						#acf(resid(m), type="p", main=list("Temporal autocorrelation:\npartial series residual",cex=0.8))
 										
-						dev.off()
+						#dev.off()
 					}		
 				{# predicted values for day				
 				# values to predict for		
@@ -245,7 +268,7 @@ d$rad_t=2*pi*d$nTideTime / 12.4
 					pp=newD	
 					
 					pp$tag=di$Tag[1]
-					if(i==1){ write.table(pp, "fits_day_htide_nolog.txt", row.names = FALSE, col.names=TRUE)}else{ write.table(pp, "fits_day_htide_nolog.txt", append = TRUE, row.names = FALSE,col.names=FALSE)	}	
+					if(i==1){ write.table(pp, "fits_day_100s.txt", row.names = FALSE, col.names=TRUE)}else{ write.table(pp, "fits_day_100s.txt", append = TRUE, row.names = FALSE,col.names=FALSE)	}	
 					}
 				{# predicted values for tide			
 				# values to predict for		
@@ -266,21 +289,21 @@ d$rad_t=2*pi*d$nTideTime / 12.4
 					pp=newD	
 					
 					pp$tag=di$Tag[1]
-					if(i==1){ write.table(pp, "fits_tide_hTide_nolog.txt", row.names = FALSE, col.names=TRUE)}else{ write.table(pp, "fits_tide_hTide_nolog.txt", append = TRUE, row.names = FALSE,col.names=FALSE)	}
+					if(i==1){ write.table(pp, "fits_tide_100s.txt", row.names = FALSE, col.names=TRUE)}else{ write.table(pp, "fits_tide_100s.txt", append = TRUE, row.names = FALSE,col.names=FALSE)	}
 					}
 				}
 			}
 	x = do.call(rbind,l) # modelu summaries
-	save(x, file = 'rhythms_htide_extremes_out_no_log.Rdata')			
-				
-				
+	save(x, file = paste(wd, 'simulations/model_output_100.Rdata', sep=''))			
 }								
+}
+	
 				
 {# proportion of individuals with given rhythms						
-				
-				load(file = 'rhythms_htide_extremes_out.Rdata')
-				pd = read.table('fits_day_htide_nolog.txt', header = TRUE, stringsAsFactors = FALSE )
-				pe = read.table('fits_tide_hTide_nolog.txt', header = TRUE, stringsAsFactors = FALSE )
+				load(file = 'simulations/model_output_100.Rdata')		
+				load(file = 'simulations/model_outputs.Rdata')
+				pd = read.table('simulations/fits_day_htide_nolog.txt', header = TRUE, stringsAsFactors = FALSE )
+				pe = read.table('simulations/fits_tide_hTide_nolog.txt', header = TRUE, stringsAsFactors = FALSE )
 							
 				y=x[-which(x$lwr<0 & x$upr>0),] # only those with intervals not overlapping zero
 				length(unique(y$tag[y$period==12.4]))/length(unique(x$tag)) # proportion of birds with clear tidal pattern
@@ -293,6 +316,7 @@ d$rad_t=2*pi*d$nTideTime / 12.4
 				summary(n)
 }				
 {# check birds with reversed tidal rhythms
+			pe = read.table('simulations/fits_tide_hTide_nolog.txt', header = TRUE, stringsAsFactors = FALSE )
 			pe_ = ddply(pe,.(tag), summarise, time_ = nTideTime[pred == max(pred)]) 
 			pe_[pe_$time_>(-3.1) & pe_$time_<3.1,]
 			table(d$Tag) 
@@ -302,10 +326,15 @@ d$rad_t=2*pi*d$nTideTime / 12.4
 			ggplot(px, aes(x = nTideTime, y = pred, col = as.factor(tag)))+geom_point()		
 }	
 {# Figure 2 - standardized sclae
-		
+	{# run first
+				load(file = 'simulations/model_outputs.Rdata')
+				
+				pd = read.table('simulations/fits_day_100s.txt', header = TRUE, stringsAsFactors = FALSE )
+				pe = read.table('simulations/fits_tide_100s.txt', header = TRUE, stringsAsFactors = FALSE )
+	}
 	{# tide - plot on log or standardized scale
 				if(PNG == TRUE) {
-					png(paste(outdir,"Figure_1A_no_log.png", sep=""), width=1.85+0.3,height=1.5,units="in",res=600) 
+					png(paste(outdir,"Figure_1A_100.png", sep=""), width=1.85+0.3,height=1.5,units="in",res=600) 
 					}else{
 					dev.new(width=1.85+0.3,height=1.5)
 					}	
@@ -345,7 +374,7 @@ d$rad_t=2*pi*d$nTideTime / 12.4
 			}
 	{# 24h - plot on log or standardized scale
 				if(PNG == TRUE) {
-					png(paste(outdir,"Figure_1B_col_inv.png", sep=""), width=1.85+0.3,height=1.5,units="in",res=600) 
+					png(paste(outdir,"Figure_1B_100.png", sep=""), width=1.85+0.3,height=1.5,units="in",res=600) 
 					}else{
 					dev.new(width=1.85+0.3,height=1.5)
 					}	
@@ -388,9 +417,15 @@ d$rad_t=2*pi*d$nTideTime / 12.4
 			}
 }										
 {# Figure 2	- km scale
+	{# run first
+				load(file = 'data.Rdata')
+				load(file = 'simulations/model_outputs.Rdata')
+				pd = read.table('simulations/fits_day_100s.txt', header = TRUE, stringsAsFactors = FALSE )
+				pe = read.table('simulations/fits_tide_100s.txt', header = TRUE, stringsAsFactors = FALSE )
+	}	
 	{# tide - plot on log or standardized scale
 				if(PNG == TRUE) {
-					png(paste(outdir,"Figure_1A_orig.png", sep=""), width=1.85+0.3,height=1.5,units="in",res=600) 
+					png(paste(outdir,"Figure_1A_orig_100.png", sep=""), width=1.85+0.3,height=1.5,units="in",res=600) 
 					}else{
 					dev.new(width=1.85+0.3,height=1.5)
 					}	
@@ -421,7 +456,7 @@ d$rad_t=2*pi*d$nTideTime / 12.4
 				for(i in 1:length(unique(pe$tag))){ # check tag 4, 7, 8, 11, 16
 							pdi = pe[pe$tag==unique(pe$tag)[i],]
 							pdi=pdi[order(pdi$nTideTime),]
-							mdi = md$maxd[md$tag==unique(md$tag)[i]][i]/1000
+							mdi = md$maxd[md$tag==unique(md$tag)[i]]/1000
 							lines(pdi$nTideTime,pdi$pred*mdi)
 						}
 				
@@ -431,7 +466,7 @@ d$rad_t=2*pi*d$nTideTime / 12.4
 			}
 	{# 24h - plot on log or standardized scale
 				if(PNG == TRUE) {
-					png(paste(outdir,"Figure_1B_ori.png", sep=""), width=1.85+0.3,height=1.5,units="in",res=600) 
+					png(paste(outdir,"Figure_1B_ori_100.png", sep=""), width=1.85+0.3,height=1.5,units="in",res=600) 
 					}else{
 					dev.new(width=1.85+0.3,height=1.5)
 					}	
@@ -466,7 +501,7 @@ d$rad_t=2*pi*d$nTideTime / 12.4
 							pdi = pd[pd$tag==unique(pd$tag)[i],]
 							pdi=pdi[order(pdi$rhour),]
 							if(pdi$rhour[pdi$pred == min(pdi$pred)]>19.5 | pdi$rhour[pdi$pred == min(pdi$pred)]<7){col_=col_f}else{col_=col_m}
-							mdi = md$maxd[md$tag==unique(md$tag)[i]][i]/1000
+							mdi = md$maxd[md$tag==unique(md$tag)[i]]/1000
 							lines(pdi$rhour,pdi$pred*mdi, col = col_)
 						}
 						
@@ -476,7 +511,9 @@ d$rad_t=2*pi*d$nTideTime / 12.4
 			}
 }					
 
-########################## sessionInfo() #####################################		
+}
+
+############################## sessionInfo() ##############################		
 R version 3.3.0 (2016-05-03)
 Platform: x86_64-w64-mingw32/x64 (64-bit)
 Running under: Windows 7 x64 (build 7601) Service Pack 1
