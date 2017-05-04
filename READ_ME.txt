@@ -75,7 +75,10 @@ CONTENT
 				
 	bda.tif - an image of the Banc d'Arguin, based on band 4 of a Landsat 5 image. Coordinates in UTM zone 28				
 				
-	data.Rdata - ready to be analysed knot - data (i.e. can be used without need to generate) obtained by 'prepare data' part in analyses_knot.R; object 'd' contains the off-roost distances and relevant variables, object md contains tag_ID and 95% farthest distance used for standardization of all distance for the given bird"			
+	data.txt - knot-data prepared for analyses (i.e. can be used without need to generate) obtained by 'prepare data for analyses' part in analyses_knot.R script 
+		     - contains the off-roost distances and relevant variables) object md contains tag_ID and 95% farthest distance used for standardization of all distance for the given bird"			
+	95%distance.txt - obtained by 'prepare data' part in analyses_knot.R; 
+					- contains tag_ID and 95% farthest distance used for standardization of all distance for the given bird			
 				
 --------------------------------------------------------------------------------------------------------
 
