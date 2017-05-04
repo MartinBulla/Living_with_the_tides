@@ -55,9 +55,6 @@ mypalette <- mypalette[2:7]
 col_f = '#FCB42C'
 col_m = '#535F7C'
 
-### get map
-map <- raster(paste(wd,"data/bda.tif",sep=""))
-
 ### define sunrises and sunsets for plotting (sunrise/sunset 9 January 7:38/18:45, 13 feb 7:32/19:04 LOCAL TIME)
 rx <- c(7+38/60,7+32/60)  #sunrise
 sx <- c(18+45/60,19+4/60) #sunset
@@ -685,7 +682,38 @@ if(skip2 == FALSE){
 }
 
 }
+{# Figure S2 - map with all positions and main roosts
+########################### make map with all positions and main roosts ######################
+ ### load distance data
+	 d = read.table(paste(wd,"data/data.txt",sep=''),header=T,sep="\t", stringsAsFactors = FALSE)
+ ### define main high tide roosts
+	roosts <- data.frame(X=c(364306.2,362906.2,364631.2,366131.2,367331.2,367506.2,362306.2),
+                     Y=c(2197575,2199150,2199125,2201550,2200425,2196075,2196275),ID=1:7)
+ ### define color and breakpoints for the plot					 
+	colors <- c("paleturquoise","khaki","yellowgreen")
+	breakpoints <- c(0,1.5,3.5,5)
+### get map
+	map <- raster(paste(wd,"data/bda.tif",sep=""))
+### plot
+  if(PNG == TRUE) {
+					png(paste(outdir,"Figure_S1_.png",spe=""), width=8, height=8, units="cm", pointsize = 8, res = 1000)
+					}else{
+					dev.new(width=5.51181, height=5.51181, pointsize = 8)
+					}	
+ 
+	par(mfrow=c(1,1),mar=c(0,0,0,0))
+	plot(map,
+		 maxpixels=500000,
+		 col=c("lightblue","darkolivegreen4","khaki1","khaki1"),
+		 box=F,legend=F,axes=F)
+	points(d$y~d$x,pch=16,cex=0.1)
+	points(roosts$Y~roosts$X,pch=21, cex=1.1,bg="red", col='white')
+	#points(roosts$Y~roosts$X,pch=21, bg="white",cex = 3,col='lightgrey')
+	#text(x=roosts$X,y=roosts$Y,labels=roosts$ID,col="black")
+  if(PNG == TRUE) {dev.off()}
 
+}
+}
 ############################## sessionInfo() ##############################		
 R version 3.3.0 (2016-05-03)
 Platform: x86_64-w64-mingw32/x64 (64-bit)
